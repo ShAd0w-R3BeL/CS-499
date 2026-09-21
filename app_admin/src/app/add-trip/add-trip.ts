@@ -1,6 +1,11 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators
+} from '@angular/forms';
 import { Router } from '@angular/router';
 
 import { TripData } from '../trip-data';
@@ -22,14 +27,61 @@ export class AddTrip {
     private tripData: TripData
   ) {
     this.addForm = this.formBuilder.group({
-      code: ['', Validators.required],
-      name: ['', Validators.required],
-      length: ['', Validators.required],
-      start: ['', Validators.required],
-      resort: ['', Validators.required],
-      perPerson: ['', Validators.required],
-      image: ['', Validators.required],
-      description: ['', Validators.required]
+      code: [
+        '',
+        [
+          Validators.required,
+          Validators.minLength(3),
+          Validators.maxLength(10),
+          Validators.pattern(/^[A-Za-z0-9]+$/)
+        ]
+      ],
+      name: [
+        '',
+        [
+          Validators.required,
+          Validators.maxLength(100)
+        ]
+      ],
+      length: [
+        '',
+        [
+          Validators.required,
+          Validators.maxLength(50)
+        ]
+      ],
+      start: [
+        '',
+        Validators.required
+      ],
+      resort: [
+        '',
+        [
+          Validators.required,
+          Validators.maxLength(100)
+        ]
+      ],
+      perPerson: [
+        '',
+        [
+          Validators.required,
+          Validators.pattern(/^\d+(\.\d{1,2})?$/)
+        ]
+      ],
+      image: [
+        '',
+        [
+          Validators.required,
+          Validators.maxLength(255)
+        ]
+      ],
+      description: [
+        '',
+        [
+          Validators.required,
+          Validators.maxLength(1000)
+        ]
+      ]
     });
   }
 

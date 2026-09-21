@@ -21,7 +21,7 @@ var apiRouter = require('./app_api/routes/index');
 
 var app = express();
 
-// view engine setup
+// View engine setup
 app.set('views', path.join(__dirname, 'app_server', 'views'));
 app.set('view engine', 'hbs');
 
@@ -51,13 +51,35 @@ app.use('/users', usersRouter);
 // API routes
 app.use('/api', apiRouter);
 
-// catch 404 and forward to error handler
+// Catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));
 });
 
-// error handler
+// Centralized error handler
 app.use(function(err, req, res, next) {
+  // Handle expired or invalid JWTs without exposing internal details
+  if (err.name === 'UnauthorizedError') {
+    return res
+      .status(401)
+      .json({ message: 'Unauthorized' });
+  }
+
+  // Return JSON errors for API requests
+  if (req.originalUrl.startsWith('/api/')) {
+    const status = err.status || 500;
+
+    return res
+      .status(status)
+      .json({
+        message:
+          status === 404
+            ? 'API resource not found'
+            : 'An unexpected API error occurred'
+      });
+  }
+
+  // Render the normal error page for website requests
   res.locals.message = err.message;
   res.locals.error =
     req.app.get('env') === 'development' ? err : {};

@@ -10,58 +10,181 @@
 
       <div class="mb-3">
         <label class="form-label">Code</label>
-        <input class="form-control" formControlName="code" readonly>
+        <input
+          class="form-control"
+          formControlName="code"
+          readonly
+        >
+
+        @if (submitted && f['code'].errors?.['required']) {
+          <div class="text-danger">
+            Trip code is required.
+          </div>
+        }
+        @if (submitted && f['code'].errors?.['minlength']) {
+          <div class="text-danger">
+            Trip code must be at least 3 characters.
+          </div>
+        }
+        @if (submitted && f['code'].errors?.['maxlength']) {
+          <div class="text-danger">
+            Trip code cannot exceed 10 characters.
+          </div>
+        }
+        @if (submitted && f['code'].errors?.['pattern']) {
+          <div class="text-danger">
+            Trip code can only contain letters and numbers.
+          </div>
+        }
       </div>
 
       <div class="mb-3">
         <label class="form-label">Name</label>
-        <input class="form-control" formControlName="name">
+        <input
+          class="form-control"
+          formControlName="name"
+        >
+
+        @if (submitted && f['name'].errors?.['required']) {
+          <div class="text-danger">
+            Name is required.
+          </div>
+        }
+        @if (submitted && f['name'].errors?.['maxlength']) {
+          <div class="text-danger">
+            Name cannot exceed 100 characters.
+          </div>
+        }
       </div>
 
       <div class="mb-3">
         <label class="form-label">Length</label>
-        <input class="form-control" formControlName="length">
+        <input
+          class="form-control"
+          formControlName="length"
+        >
+
+        @if (submitted && f['length'].errors?.['required']) {
+          <div class="text-danger">
+            Length is required.
+          </div>
+        }
+        @if (submitted && f['length'].errors?.['maxlength']) {
+          <div class="text-danger">
+            Length cannot exceed 50 characters.
+          </div>
+        }
       </div>
 
       <div class="mb-3">
         <label class="form-label">Start Date</label>
-        <input type="date" class="form-control" formControlName="start">
+        <input
+          type="date"
+          class="form-control"
+          formControlName="start"
+        >
+
+        @if (submitted && f['start'].errors?.['required']) {
+          <div class="text-danger">
+            Start date is required.
+          </div>
+        }
       </div>
 
       <div class="mb-3">
         <label class="form-label">Resort</label>
-        <input class="form-control" formControlName="resort">
+        <input
+          class="form-control"
+          formControlName="resort"
+        >
+
+        @if (submitted && f['resort'].errors?.['required']) {
+          <div class="text-danger">
+            Resort is required.
+          </div>
+        }
+        @if (submitted && f['resort'].errors?.['maxlength']) {
+          <div class="text-danger">
+            Resort cannot exceed 100 characters.
+          </div>
+        }
       </div>
 
       <div class="mb-3">
         <label class="form-label">Per Person</label>
-        <input class="form-control" formControlName="perPerson">
+        <input
+          class="form-control"
+          formControlName="perPerson"
+          inputmode="decimal"
+        >
+
+        @if (submitted && f['perPerson'].errors?.['required']) {
+          <div class="text-danger">
+            Price per person is required.
+          </div>
+        }
+        @if (submitted && f['perPerson'].errors?.['pattern']) {
+          <div class="text-danger">
+            Price must be a positive number with no more than two decimal places.
+          </div>
+        }
       </div>
 
       <div class="mb-3">
         <label class="form-label">Image Name</label>
-        <input class="form-control" formControlName="image">
+        <input
+          class="form-control"
+          formControlName="image"
+        >
+
+        @if (submitted && f['image'].errors?.['required']) {
+          <div class="text-danger">
+            Image name is required.
+          </div>
+        }
+        @if (submitted && f['image'].errors?.['maxlength']) {
+          <div class="text-danger">
+            Image name cannot exceed 255 characters.
+          </div>
+        }
       </div>
 
       <div class="mb-3">
         <label class="form-label">Description</label>
-        <textarea class="form-control" formControlName="description"></textarea>
+        <textarea
+          class="form-control"
+          formControlName="description"
+        ></textarea>
+
+        @if (submitted && f['description'].errors?.['required']) {
+          <div class="text-danger">
+            Description is required.
+          </div>
+        }
+        @if (submitted && f['description'].errors?.['maxlength']) {
+          <div class="text-danger">
+            Description cannot exceed 1000 characters.
+          </div>
+        }
       </div>
 
       <div class="d-flex gap-2">
-        <button class="btn btn-primary" type="submit">
+        <button
+          class="btn btn-primary"
+          type="submit"
+        >
           Save
         </button>
 
         <button
-            class="btn btn-danger"
-            type="button"
-            (click)="deleteTrip()"
+          class="btn btn-danger"
+          type="button"
+          (click)="deleteTrip()"
         >
-            Delete Trip
-         </button>
-        </div>
-        
+          Delete Trip
+        </button>
+      </div>
+
     </form>
   }
 </div>
