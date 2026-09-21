@@ -4,12 +4,13 @@ import { Observable } from 'rxjs';
 
 import { Trip } from './models/trip';
 import { Authentication } from './authentication';
+import { environment } from '../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class TripData {
-  private apiUrl = 'http://localhost:3000/api/trips';
+  private readonly apiUrl = `${environment.apiUrl}/trips`;
 
   constructor(
     private http: HttpClient,
@@ -20,30 +21,21 @@ export class TripData {
     return this.http.get<Trip[]>(this.apiUrl);
   }
 
-  getTrip(tripCode: string): Observable<Trip[]> {
-    return this.http.get<Trip[]>(
+  getTrip(tripCode: string): Observable<Trip> {
+    return this.http.get<Trip>(
       `${this.apiUrl}/${tripCode}`
     );
   }
 
   addTrip(trip: Trip): Observable<Trip> {
-  const token = this.authentication.getToken();
-
-  console.log(
-    'TripData token:',
-    token ? 'TOKEN FOUND' : 'NO TOKEN'
-  );
-
-  const headers = new HttpHeaders({
-    Authorization: `Bearer ${token}`
-  });
-
-  return this.http.post<Trip>(
-    this.apiUrl,
-    trip,
-    { headers }
-  );
-}
+    return this.http.post<Trip>(
+      this.apiUrl,
+      trip,
+      {
+        headers: this.getAuthHeaders()
+      }
+    );
+  }
 
   updateTrip(trip: Trip): Observable<Trip> {
     return this.http.put<Trip>(

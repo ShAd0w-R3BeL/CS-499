@@ -46,25 +46,20 @@ export class EditTrip implements OnInit {
     });
 
     this.tripData.getTrip(tripCode).subscribe({
-      next: (value: Trip[]) => {
-        if (value.length === 0) {
-          this.message = 'No trip retrieved.';
-          return;
-        }
+  next: (value: Trip) => {
+    this.trip = value;
 
-        this.trip = value[0];
+    // MongoDB returns a full ISO date, while the HTML date field expects YYYY-MM-DD
+    const formTrip = {
+      ...this.trip,
+      start: this.trip.start
+        ? this.trip.start.substring(0, 10)
+        : ''
+    };
 
-        // MongoDB returns a full ISO date, while the HTML date field expects YYYY-MM-DD
-        const formTrip = {
-          ...this.trip,
-          start: this.trip.start
-            ? this.trip.start.substring(0, 10)
-            : ''
-        };
-
-        this.editForm.patchValue(formTrip);
-        this.message = `Trip ${tripCode} retrieved.`;
-      },
+    this.editForm.patchValue(formTrip);
+    this.message = `Trip ${tripCode} retrieved.`;
+  },
       error: (error: any) => {
         console.error('Error retrieving trip:', error);
         this.message = 'Error retrieving trip.';
