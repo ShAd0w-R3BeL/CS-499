@@ -1,6 +1,17 @@
 const mongoose = require('mongoose');
 const Trip = mongoose.model('trips');
 
+// Sends a consistent error response without exposing internal error details
+const sendErrorResponse = (res, status, message, err) => {
+    if (err) {
+        console.error(message, err.message);
+    }
+
+    return res
+        .status(status)
+        .json({ message });
+};
+
 // GET: /trips
 // Returns all trips
 const tripsList = async (req, res) => {
@@ -9,7 +20,7 @@ const tripsList = async (req, res) => {
             .find({})
             .exec();
 
-        if (!trips || trips.length === 0) {
+        if (trips.length === 0) {
             return res
                 .status(404)
                 .json({ message: 'No trips found' });
@@ -19,9 +30,12 @@ const tripsList = async (req, res) => {
             .status(200)
             .json(trips);
     } catch (err) {
-        return res
-            .status(500)
-            .json(err);
+        return sendErrorResponse(
+            res,
+            500,
+            'Unable to retrieve trips',
+            err
+        );
     }
 };
 
@@ -30,10 +44,10 @@ const tripsList = async (req, res) => {
 const tripsFindByCode = async (req, res) => {
     try {
         const trip = await Trip
-            .find({ code: req.params.tripCode })
+            .findOne({ code: req.params.tripCode })
             .exec();
 
-        if (!trip || trip.length === 0) {
+        if (!trip) {
             return res
                 .status(404)
                 .json({ message: 'Trip not found' });
@@ -43,9 +57,12 @@ const tripsFindByCode = async (req, res) => {
             .status(200)
             .json(trip);
     } catch (err) {
-        return res
-            .status(500)
-            .json(err);
+        return sendErrorResponse(
+            res,
+            500,
+            'Unable to retrieve trip',
+            err
+        );
     }
 };
 
@@ -68,9 +85,12 @@ const tripsAddTrip = async (req, res) => {
             .status(201)
             .json(trip);
     } catch (err) {
-        return res
-            .status(400)
-            .json(err);
+        return sendErrorResponse(
+            res,
+            400,
+            'Unable to add trip',
+            err
+        );
     }
 };
 
@@ -105,9 +125,12 @@ const tripsUpdateTrip = async (req, res) => {
             .status(200)
             .json(trip);
     } catch (err) {
-        return res
-            .status(400)
-            .json(err);
+        return sendErrorResponse(
+            res,
+            400,
+            'Unable to update trip',
+            err
+        );
     }
 };
 
@@ -129,9 +152,12 @@ const tripsDeleteTrip = async (req, res) => {
             .status(200)
             .json({ message: 'Trip deleted successfully' });
     } catch (err) {
-        return res
-            .status(500)
-            .json(err);
+        return sendErrorResponse(
+            res,
+            500,
+            'Unable to delete trip',
+            err
+        );
     }
 };
 
