@@ -38,6 +38,7 @@ export class TripListing implements OnInit {
   private getTrips(): void {
     this.tripData.getTrips().subscribe({
       next: (value: Trip[]) => {
+        // Preserve the original collection.
         this.allTrips = [...value];
         this.applyFilters();
       },
@@ -45,65 +46,108 @@ export class TripListing implements OnInit {
         console.error('Error retrieving trips:', error);
         this.allTrips = [];
         this.trips.set([]);
-        this.message.set('Error retrieving trips from the database.');
+        this.message.set(
+          'Error retrieving trips from the database.'
+        );
       }
     });
   }
 
   public applyFilters(): void {
-    const search = this.searchTerm.trim().toLowerCase();
-    const resort = this.resortFilter.trim().toLowerCase();
-
-    // Work from the original collection so filters do not permanently
-    // remove elements from the source dataset.
+    // Each operation returns a new array, creating a predictable
+    // search -> filter -> sort processing pipeline.
     let results = [...this.allTrips];
 
-    // Linear search across several trip properties.
-    if (search) {
-      results = results.filter((trip: Trip) =>
-        trip.code.toLowerCase().includes(search) ||
-        trip.name.toLowerCase().includes(search) ||
-        trip.resort.toLowerCase().includes(search)
-      );
+    results = this.searchTrips(results, this.searchTerm);
+    results = this.filterTripsByResort(
+      results,
+      this.resortFilter
+    );
+    results = this.sortTrips(
+      results,
+      this.sortField,
+      this.sortDirection
+    );
+
+    this.trips.set(results);
+    this.updateMessage(results.length);
+  }
+
+  private searchTrips(
+    trips: Trip[],
+    searchTerm: string
+  ): Trip[] {
+    const search = searchTerm.trim().toLowerCase();
+
+    if (!search) {
+      return trips;
     }
 
-    // Apply an optional resort filter.
-    if (resort) {
-      results = results.filter(
-        (trip: Trip) => trip.resort.toLowerCase() === resort
-      );
+    return trips.filter((trip: Trip) =>
+      trip.code.toLowerCase().includes(search) ||
+      trip.name.toLowerCase().includes(search) ||
+      trip.resort.toLowerCase().includes(search)
+    );
+  }
+
+  private filterTripsByResort(
+    trips: Trip[],
+    resortFilter: string
+  ): Trip[] {
+    const resort = resortFilter.trim().toLowerCase();
+
+    if (!resort) {
+      return trips;
     }
 
-    // Sort the processed collection using the selected comparator.
-    results.sort((a: Trip, b: Trip) => {
-      let comparison = 0;
+    return trips.filter(
+      (trip: Trip) =>
+        trip.resort.toLowerCase() === resort
+    );
+  }
 
-      switch (this.sortField) {
-        case 'start':
-          comparison =
-            new Date(a.start).getTime() -
-            new Date(b.start).getTime();
-          break;
+  private sortTrips(
+    trips: Trip[],
+    field: SortField,
+    direction: SortDirection
+  ): Trip[] {
+    // Copy the array before sorting so the incoming collection
+    // is not modified in place.
+    const sortedTrips = [...trips];
 
-        case 'perPerson':
-          comparison =
-            this.getNumericPrice(a.perPerson) -
-            this.getNumericPrice(b.perPerson);
-          break;
+    sortedTrips.sort((a: Trip, b: Trip) => {
+      const comparison = this.compareTrips(a, b, field);
 
-        case 'name':
-        default:
-          comparison = a.name.localeCompare(b.name);
-          break;
-      }
-
-      return this.sortDirection === 'asc'
+      return direction === 'asc'
         ? comparison
         : -comparison;
     });
 
-    this.trips.set(results);
-    this.updateMessage(results.length);
+    return sortedTrips;
+  }
+
+  private compareTrips(
+    a: Trip,
+    b: Trip,
+    field: SortField
+  ): number {
+    switch (field) {
+      case 'start':
+        return (
+          new Date(a.start).getTime() -
+          new Date(b.start).getTime()
+        );
+
+      case 'perPerson':
+        return (
+          this.getNumericPrice(a.perPerson) -
+          this.getNumericPrice(b.perPerson)
+        );
+
+      case 'name':
+      default:
+        return a.name.localeCompare(b.name);
+    }
   }
 
   public clearFilters(): void {
@@ -116,21 +160,32 @@ export class TripListing implements OnInit {
   }
 
   public getResorts(): string[] {
-    return [
-      ...new Set(
-        this.allTrips
-          .map((trip: Trip) => trip.resort)
-          .filter((resort: string) => resort)
-      )
-    ].sort((a: string, b: string) => a.localeCompare(b));
+    // Set removes duplicate resort names from the collection.
+    const uniqueResorts = new Set<string>();
+
+    for (const trip of this.allTrips) {
+      if (trip.resort) {
+        uniqueResorts.add(trip.resort);
+      }
+    }
+
+    return Array
+      .from(uniqueResorts)
+      .sort((a: string, b: string) =>
+        a.localeCompare(b)
+      );
   }
 
-  private getNumericPrice(price: string | number): number {
+  private getNumericPrice(
+    price: string | number
+  ): number {
     const numericPrice = Number(
       String(price).replace(/[$,\s]/g, '')
     );
 
-    return Number.isNaN(numericPrice) ? 0 : numericPrice;
+    return Number.isNaN(numericPrice)
+      ? 0
+      : numericPrice;
   }
 
   private updateMessage(resultCount: number): void {
