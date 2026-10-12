@@ -5,7 +5,7 @@
     "length": "4 nights / 5 days",
     "start": "2026-03-15",
     "resort": "Coral Sands Resort",
-    "perPerson": "899",
+    "perPerson": 899,
     "image": "reef1.jpg",
     "description": "Relax on beautiful beaches and enjoy water activities."
   },
@@ -15,7 +15,7 @@
     "length": "5 nights / 6 days",
     "start": "2026-04-20",
     "resort": "Ocean Breeze Resort",
-    "perPerson": "1199",
+    "perPerson": 1199,
     "image": "reef2.jpg",
     "description": "Experience tropical destinations and marine adventures."
   },
@@ -25,7 +25,7 @@
     "length": "6 nights / 7 days",
     "start": "2026-05-18",
     "resort": "Blue Reef Resort",
-    "perPerson": "1399",
+    "perPerson": 1399,
     "image": "reef3.jpg",
     "description": "Explore coral reefs, tropical waters, and island scenery."
   }

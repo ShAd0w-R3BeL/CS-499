@@ -12,6 +12,37 @@ const sendErrorResponse = (res, status, message, err) => {
         .json({ message });
 };
 
+// Converts database errors into appropriate HTTP responses.
+const handleTripDatabaseError = (res, err, action) => {
+    if (err.code === 11000) {
+        return sendErrorResponse(
+            res,
+            409,
+            'A trip with this code already exists',
+            err
+        );
+    }
+
+    if (
+        err.name === 'ValidationError' ||
+        err.name === 'CastError'
+    ) {
+        return sendErrorResponse(
+            res,
+            400,
+            'Invalid trip data',
+            err
+        );
+    }
+
+    return sendErrorResponse(
+        res,
+        500,
+        `Unable to ${action} trip`,
+        err
+    );
+};
+
 // Validates trip data before it is sent to the database
 const validateTripData = (data) => {
     const errors = [];
@@ -180,7 +211,7 @@ const tripsAddTrip = async (req, res) => {
             length: req.body.length.trim(),
             start: req.body.start,
             resort: req.body.resort.trim(),
-            perPerson: String(req.body.perPerson).trim(),
+            perPerson: Number(req.body.perPerson),
             image: req.body.image.trim(),
             description: req.body.description.trim()
         });
@@ -189,12 +220,7 @@ const tripsAddTrip = async (req, res) => {
             .status(201)
             .json(trip);
     } catch (err) {
-        return sendErrorResponse(
-            res,
-            400,
-            'Unable to add trip',
-            err
-        );
+    return handleTripDatabaseError(res, err, 'add');
     }
 };
 
@@ -222,9 +248,7 @@ const tripsUpdateTrip = async (req, res) => {
                     length: req.body.length.trim(),
                     start: req.body.start,
                     resort: req.body.resort.trim(),
-                    perPerson: String(
-                        req.body.perPerson
-                    ).trim(),
+                    perPerson: Number(req.body.perPerson),
                     image: req.body.image.trim(),
                     description:
                         req.body.description.trim()
@@ -246,12 +270,7 @@ const tripsUpdateTrip = async (req, res) => {
             .status(200)
             .json(trip);
     } catch (err) {
-        return sendErrorResponse(
-            res,
-            400,
-            'Unable to update trip',
-            err
-        );
+    return handleTripDatabaseError(res, err, 'update');
     }
 };
 
@@ -286,10 +305,59 @@ const tripsDeleteTrip = async (req, res) => {
     }
 };
 
+// GET: /api/trips/analytics
+// Calculate trip pricing statistics using MongoDB aggregation.
+const tripsAnalytics = async (req, res) => {
+    try {
+        const results = await Trip.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    totalTrips: { $sum: 1 },
+                    averagePrice: { $avg: '$perPerson' },
+                    lowestPrice: { $min: '$perPerson' },
+                    highestPrice: { $max: '$perPerson' },
+                    combinedPrice: { $sum: '$perPerson' }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    totalTrips: 1,
+                    averagePrice: { $round: ['$averagePrice', 2] },
+                    lowestPrice: 1,
+                    highestPrice: 1,
+                    combinedPrice: 1
+                }
+            }
+        ]);
+
+        if (results.length === 0) {
+            return res.status(200).json({
+                totalTrips: 0,
+                averagePrice: 0,
+                lowestPrice: 0,
+                highestPrice: 0,
+                combinedPrice: 0
+            });
+        }
+
+        return res.status(200).json(results[0]);
+
+    } catch (error) {
+        console.error('Trip analytics error:', error.message);
+
+        return res.status(500).json({
+            message: 'Unable to retrieve trip analytics'
+        });
+    }
+};
+
 module.exports = {
     tripsList,
     tripsFindByCode,
     tripsAddTrip,
     tripsUpdateTrip,
-    tripsDeleteTrip
+    tripsDeleteTrip,
+    tripsAnalytics
 };

@@ -1,70 +1,85 @@
 const mongoose = require('mongoose');
 
-const host = process.env.DB_HOST || '127.0.0.1';
-const dbURI = `mongodb://${host}/travlr`;
+const dbHost = process.env.DB_HOST || '127.0.0.1';
+const dbName = process.env.DB_NAME || 'travlr';
 
-const readLine = require('readline');
+const dbURI = `mongodb://${dbHost}/${dbName}`;
 
-// Build the connection string and set the connection timeout.
-const connect = () => {
-    setTimeout(() => mongoose.connect(dbURI, {}), 1000);
+// Establish the database connection.
+const connect = async () => {
+    try {
+        await mongoose.connect(dbURI, {
+            serverSelectionTimeoutMS: 5000
+        });
+
+        console.log(`MongoDB connected to database: ${dbName}`);
+    } catch (error) {
+        console.error('MongoDB connection failed:', error.message);
+
+        try {
+            await mongoose.disconnect();
+        } catch (disconnectError) {
+            console.error(
+                'MongoDB cleanup failed:',
+                disconnectError.message
+            );
+        }
+
+        process.exit(1);
+    }
 };
 
-// Monitor connection events
-mongoose.connection.on('connected', () => {
-    console.log(`Mongoose connected to ${dbURI}`);
-});
-
-mongoose.connection.on('error', err => {
-    console.log('Mongoose connection error: ', err);
+// Monitor database connection events.
+mongoose.connection.on('error', (error) => {
+    console.error('MongoDB connection error:', error.message);
 });
 
 mongoose.connection.on('disconnected', () => {
-    console.log('Mongoose disconnected');
+    console.log('MongoDB disconnected');
 });
 
-// Windows specific listener
-if (process.platform === 'win32') {
-    const rl = readLine.createInterface({
-        input: process.stdin,
-        output: process.stdout
-    });
+// Close the database connection before shutting down.
+let shuttingDown = false;
 
-    rl.on('SIGINT', () => {
-        process.emit('SIGINT');
-    });
-}
+const gracefulShutdown = async (signal) => {
+    if (shuttingDown) {
+        return;
+    }
 
-// Configure for Graceful Shutdown
-const gracefulShutdown = (msg) => {
-    mongoose.connection.close(() => {
-        console.log(`Mongoose disconnected through ${msg}`);
-    });
+    shuttingDown = true;
+
+    try {
+        await mongoose.connection.close();
+        console.log(`MongoDB connection closed: ${signal}`);
+    } catch (error) {
+        console.error('MongoDB shutdown error:', error.message);
+        process.exitCode = 1;
+    }
+
+    if (signal === 'SIGUSR2') {
+        process.kill(process.pid, 'SIGUSR2');
+    } else {
+        process.exit();
+    }
 };
 
-// Shutdown invoked by nodemon signal
 process.once('SIGUSR2', () => {
-    gracefulShutdown('nodemon restart');
-    process.kill(process.pid, 'SIGUSR2');
+    gracefulShutdown('SIGUSR2');
 });
 
-// Shutdown invoked by app termination
-process.on('SIGINT', () => {
-    gracefulShutdown('app termination');
-    process.exit(0);
+process.once('SIGINT', () => {
+    gracefulShutdown('SIGINT');
 });
 
-// Shutdown invoked by container termination
-process.on('SIGTERM', () => {
-    gracefulShutdown('app shutdown');
-    process.exit(0);
+process.once('SIGTERM', () => {
+    gracefulShutdown('SIGTERM');
 });
 
-// Make initial connection to DB
-connect();
-
-// Import Mongoose schema
+// Register database models.
 require('./travlr');
 require('./user');
+
+// Connect to MongoDB.
+connect();
 
 module.exports = mongoose;

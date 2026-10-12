@@ -15,6 +15,11 @@ router
     .get(tripsController.tripsList)
     .post(auth, tripsController.tripsAddTrip);
 
+// Protected trip analytics endpoint
+router
+    .route('/trips/analytics')
+    .get(auth, tripsController.tripsAnalytics);
+
 router
     .route('/trips/:tripCode')
     .get(tripsController.tripsFindByCode)

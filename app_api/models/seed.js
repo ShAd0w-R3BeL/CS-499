@@ -1,30 +1,63 @@
 const fs = require('fs');
+const path = require('path');
 const mongoose = require('mongoose');
 const Trip = require('./travlr');
 
-const host = process.env.DB_HOST || '127.0.0.1';
-const dbURI = `mongodb://${host}/travlr`;
+const dbHost = process.env.DB_HOST || '127.0.0.1';
+const dbName = process.env.DB_NAME || 'travlr';
+const dbURI = `mongodb://${dbHost}/${dbName}`;
 
-const trips = JSON.parse(
-    fs.readFileSync('./app_server/data/trips.json', 'utf8')
+const seedFile = path.join(
+    __dirname,
+    '../../app_server/data/trips.json'
 );
 
-mongoose.connect(dbURI)
-    .then(async () => {
-        console.log(`Mongoose connected to ${dbURI}`);
+const seedDatabase = async () => {
+    try {
+        const trips = JSON.parse(
+            fs.readFileSync(seedFile, 'utf8')
+        );
 
-        // Remove existing trip records
-        await Trip.deleteMany({});
+        // Validate all seed records before modifying the database.
+        for (const tripData of trips) {
+            const trip = new Trip(tripData);
+            await trip.validate();
+        }
 
-        // Insert seed data
-        await Trip.insertMany(trips);
+        await mongoose.connect(dbURI, {
+            serverSelectionTimeoutMS: 5000
+        });
 
-        console.log(`${trips.length} trips inserted successfully`);
+        console.log(`Connected to MongoDB database: ${dbName}`);
 
-        await mongoose.connection.close();
-        console.log('Mongoose disconnected');
-    })
-    .catch((err) => {
-        console.error('Database seed error:', err);
-        process.exit(1);
-    });
+        let inserted = 0;
+        let existing = 0;
+
+        for (const tripData of trips) {
+            const result = await Trip.updateOne(
+                { code: tripData.code },
+                { $setOnInsert: tripData },
+                { upsert: true, runValidators: true }
+            );
+
+            if (result.upsertedCount === 1) {
+                inserted++;
+            } else {
+                existing++;
+            }
+        }
+
+        console.log(`Seed records processed: ${trips.length}`);
+        console.log(`New trips inserted: ${inserted}`);
+        console.log(`Existing trips preserved: ${existing}`);
+
+    } catch (error) {
+        console.error('Database seed failed:', error.message);
+        process.exitCode = 1;
+    } finally {
+        await mongoose.disconnect();
+        console.log('Database connection closed.');
+    }
+};
+
+seedDatabase();
