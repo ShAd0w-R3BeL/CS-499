@@ -47,6 +47,39 @@ const handleTripDatabaseError = (res, err, action) => {
 const validateTripData = (data) => {
     const errors = [];
 
+    // Reject missing or invalid request bodies.
+    if (
+        !data ||
+        typeof data !== 'object' ||
+        Array.isArray(data)
+    ) {
+        return ['Trip data must be a valid object'];
+    }
+
+    // Ensure text fields contain strings before calling trim().
+    const textFields = [
+        'code',
+        'name',
+        'length',
+        'resort',
+        'image',
+        'description'
+    ];
+
+    for (const field of textFields) {
+        if (
+            data[field] !== undefined &&
+            data[field] !== null &&
+            typeof data[field] !== 'string'
+        ) {
+            errors.push(`${field} must be text`);
+        }
+    }
+
+    if (errors.length > 0) {
+        return errors;
+    }
+
     const requiredFields = [
         'code',
         'name',
